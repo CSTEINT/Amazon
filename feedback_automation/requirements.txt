@@ -1,0 +1,4 @@
+lxml
+pyotp
+PyYAML
+requests
