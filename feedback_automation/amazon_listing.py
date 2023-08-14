@@ -177,7 +177,7 @@ def run_off(playwright: Playwright) -> None:
     browser.close()
     logger.info("Unmapping is Done. csv sheet updation in progress.")
     df['Updated_SKUS'] = list_orders(fn_cookies)
-    df.to_csv(file_name)
+    df.to_csv('amazon_listing.csv')
     logger.info("SKUS updation is Done")
     logger.info("Program Successfully Completed.")
     
