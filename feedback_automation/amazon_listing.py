@@ -45,6 +45,8 @@ def get_cookies(cookies):
     return dic
 
 def list_orders(cookies):
+    df = pd.read_csv('amazon_listing.csv')
+    asins = [x for x in df['ASIN']]
     session = Session()
     session.cookies.update(cookies)
     skus = []
