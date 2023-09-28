@@ -96,7 +96,7 @@ if __name__ == "__main__":
     opt = [login['drive_link']]
     main(opt, dowloaded)
     df = pd.read_csv('amazon_claims//return_claims_amazon.csv')
-    order_ids = [x for x in df['Order Id']]
+    order_ids = [x for x in df['Order_Id']]
     df1 = pd.read_csv('claimed_list_amazon.csv')
     claimed_lst = [x for x in df1['Order_Id']]
     with sync_playwright() as playwright:
