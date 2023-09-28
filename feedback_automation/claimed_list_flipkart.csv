@@ -1,0 +1,6 @@
+Date,Order_Id,Issue_Area,Issue_Type,Claim_Description
+01-08-2023,328577367257813100,Main Product,I received a wrong product,I received another instead of delivered one.
+02-08-2023,328577367257813100,Packaging,Packaging was damaged for Return order,Package Has been Damanged. Please have a look
+03-08-2023,328577367257813100,Accessory,I received a wrong accessory in return,We have received wrong one istead of ours.
+04-08-2023,328577367257813100,Freebie,Freebie was missing from returned order,There is missing freebie in the box
+05-08-2023,328577367257813100,Combo product,One of the products from combo ,One of combo product is missing. Please have a look.
