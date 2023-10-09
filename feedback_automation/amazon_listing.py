@@ -77,7 +77,7 @@ def run_on(playwright: Playwright) -> None:
     logger.info(f"Mapping Automation started at {datetime.now()}")
     df = pd.read_csv('amazon_listing.csv')
     asins = [x for x in df['ASIN']]
-    browser = playwright.chromium.launch(channel="chrome", headless=False)
+    browser = playwright.chromium.launch(channel="chrome", headless=True)
     context = browser.new_context()
     page = context.new_page()
     page.goto(login['url'])
