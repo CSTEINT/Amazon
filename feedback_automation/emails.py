@@ -9,30 +9,32 @@ path = os.getcwd()
 # logger = logging.get_logger('__name__')
 
 
-def get_sheet_and_timings():
+def get_sheet_and_timings(Operation):
     query_params = {
-        "newer_than": (36, "hour"),
+        "newer_than": (10, "hour"),
         # "unread": True,
         # "labels":[["Work"], ["Homework", "CS"]]
     }
 
     messages = gmail.get_messages(query=construct_query(query_params))
-    message = [message for message in messages if 'varvic13@gmail.com' in message.sender]
+    message = [message for message in messages if ('varvic13@gmail.com' in message.sender) and (Operation in  str(message.subject).lower())]
     if message:
         message=message[0]
+    else:
+        return
     if message.attachments:
         for attm in message.attachments:
             attm.save(overwrite=True)
             print(attm.filename)
-            return attm.filename
+            return attm.filename,message
               # downloads and saves each attachment under it's stored
                          # filename. You can download without saving with `attm.download()
 
 
 def send_mail(filename):
     params = {
-      "to": "varvic13@gmail.com",
-      "sender": "venu@cste.international",
+      "to": "varvic13@gmail.com",  #change receiver when we deploy this script
+      "sender": "venu@cste.international", #change sender when we deploy this script
       # "cc": ["bob@bobsemail.com"],
       # "bcc": ["marie@gossip.com", "hidden@whereami.com"],
       "subject": "Day O/P Sheet",

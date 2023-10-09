@@ -1,5 +1,12 @@
+# Amazon Listing Script flow:
+# Send mail with Subject as 'mapping start_time-end_time
+# example  subject: 'mapping 21:00-04:00'
+# add attachment in mail 
+
+
+
 from emails import *
-from playwright.sync_api import Playwright, sync_playwright, expect
+from playwright.sync_api import Playwright, sync_playwright, expect,TimeoutError
 from datetime import datetime
 import time
 import schedule
@@ -21,7 +28,7 @@ from sys import argv
 with open('config.yaml', 'r') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
-login = config['login']
+login = config['login']['amazon']
 logging.basicConfig(
     level=logging.INFO,
     format='Amazon_Listing_%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -50,7 +57,6 @@ def list_orders(cookies):
     session = Session()
     session.cookies.update(cookies)
     skus = []
-    # import pdb; pdb.set_trace()
     for idx in range(len(asins)):
         payload = {
             'limit': '15',
@@ -71,7 +77,7 @@ def run_on(playwright: Playwright) -> None:
     logger.info(f"Mapping Automation started at {datetime.now()}")
     df = pd.read_csv('amazon_listing.csv')
     asins = [x for x in df['ASIN']]
-    browser = playwright.chromium.launch(channel="chrome", headless=True)
+    browser = playwright.chromium.launch(channel="chrome", headless=False)
     context = browser.new_context()
     page = context.new_page()
     page.goto(login['url'])
@@ -103,7 +109,6 @@ def run_on(playwright: Playwright) -> None:
             page.close()
             continue
         soup = BeautifulSoup(page.content(),'lxml')
-        # import pdb; pdb.set_trace()
         price = soup.find('kat-link',{'class':'match-low-price'})
         if not price:
             logger.info("The product is new")
@@ -112,8 +117,10 @@ def run_on(playwright: Playwright) -> None:
             continue
         fn_price = re.search(r'\d+.\d+',price.get('label')).group()
         page.locator("a").filter(has_text="Match lowest price").click()
+        page.pause()
+        if soup.find('kat-input',{'kat-aria-label':'HSN Code'}):
+            page.get_by_label("HSN Code").fill(str(df['HSN'][idx]))
         page.get_by_label("Quantity").fill(str(df["SKUS"][idx]))
-        page.get_by_label("HSN Code").fill(str(df['HSN'][idx]))
         page.get_by_label("Seller SKU").fill(f'MyCollection{generate(size=6)}')
         if soup.find('kat-input',{'kat-aria-label':'Maximum Retail Price'}):
             page.get_by_label("Maximum Retail Price").fill(fn_price)
@@ -179,7 +186,6 @@ def run_off(playwright: Playwright) -> None:
     df['Updated_SKUS'] = list_orders(fn_cookies)
     df.to_csv('amazon_listing.csv')
     logger.info("SKUS updation is Done")
-    logger.info("Program Successfully Completed.")
     
 
 def main2():
@@ -190,19 +196,40 @@ def main1():
     with sync_playwright() as playwright:
         run_on(playwright)
 
+
+
+def call_recursion():
+    while(True):
+        main1()
+        logger.info("Given Sleep time of 30 minutes after Mapping Task")
+        time.sleep(30*60)
+        logger.info("Given Sleep time of 30 minutes after UnMapping Task")
+        main2()
+        time.sleep(30*60)
+        if abs((end_hour)-(datetime.now().hour)) in [0,1]:
+            logger.info(f"Reached Peak time")
+            break
+    send_mail('amazon_listing.csv')
+    logger.info("Updated Sheet Sent and Program Successfully Completed.")
+
+
+
+
 if __name__=="__main__":
     logger.info(f"script started at {datetime.now()}")
-    schedule.every().day.at('21:30').do(get_sheet_and_timings)
-    schedule.every().day.at('22:00').do(main1)
-    schedule.every().day.at('23:00').do(main2)
-    schedule.every().day.at('00:00').do(main1)
-    schedule.every().day.at('01:00').do(main2)
-    schedule.every().day.at('02:00').do(main1)
-    schedule.every().day.at('03:00').do(main2)
-    schedule.every().day.at('04:00').do(main1)
-    schedule.every().day.at('05:00').do(main2)
-    schedule.every().day.at('05:30').do(send_mail,'amazon_listing.csv')
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    _, msge = get_sheet_and_timings('mapping')
+    time_ = msge.subject.split(' ')[-1].strip()
+    start_time,end_time = time_.split('-')
+    start_hour, start_minute = [int(x) for x in start_time.split(':')]
+    end_hour, end_minute =  [int(x) for x in end_time.split(':')]
+    if (datetime.now().hour>=start_hour) and (datetime.now().minute>=start_minute):
+        logger.info(f"Function Started")
+        call_recursion()
+    else:
+        slp_time = ((start_hour-(datetime.now().hour))*60*60) + ((start_minute-(datetime.now().minute))*60)
+        logger.info(f"Given sleep time of {slp_time} seconds.")
+        time.sleep(slp_time)
+        call_recursion()
+
+    
    
