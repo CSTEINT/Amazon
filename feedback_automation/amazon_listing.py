@@ -117,7 +117,6 @@ def run_on(playwright: Playwright) -> None:
             continue
         fn_price = re.search(r'\d+.\d+',price.get('label')).group()
         page.locator("a").filter(has_text="Match lowest price").click()
-        page.pause()
         if soup.find('kat-input',{'kat-aria-label':'HSN Code'}):
             page.get_by_label("HSN Code").fill(str(df['HSN'][idx]))
         page.get_by_label("Quantity").fill(str(df["SKUS"][idx]))
@@ -198,14 +197,16 @@ def main1():
 
 
 
-def call_recursion():
-    while(True):
+def call_recursion(freq):
+    cnt=0
+    while(cnt<freq):
         main1()
         logger.info("Given Sleep time of 30 minutes after Mapping Task")
-        time.sleep(30*60)
+        time.sleep(map_time*60)
         logger.info("Given Sleep time of 30 minutes after UnMapping Task")
         main2()
-        time.sleep(30*60)
+        cnt+=1
+        time.sleep(down_time*60)
         if abs((end_hour)-(datetime.now().hour)) in [0,1]:
             logger.info(f"Reached Peak time")
             break
@@ -218,18 +219,22 @@ def call_recursion():
 if __name__=="__main__":
     logger.info(f"script started at {datetime.now()}")
     _, msge = get_sheet_and_timings('mapping')
-    time_ = msge.subject.split(' ')[-1].strip()
-    start_time,end_time = time_.split('-')
+    soup_ = BeautifulSoup(msge.html,'lxml')
+    timings = [x.text.strip() for x in soup_.find_all('div',{'dir':None})]
+    orc_time = [x.strip() for x in timings[0].split(' ') if x.strip()!=''][-1]
+    map_time = [x.strip() for x in timings[1].split(' ') if x.strip()!=''][-1]
+    down_time =  [x.strip() for x in timings[2].split(' ') if x.strip()!=''][-1]
+    freq =  [x.strip() for x in timings[3].split(' ') if x.strip()!=''][-1] if len(timings)==4 else 20
+    start_time,end_time = orc_time.split('-')
     start_hour, start_minute = [int(x) for x in start_time.split(':')]
     end_hour, end_minute =  [int(x) for x in end_time.split(':')]
     if (datetime.now().hour>=start_hour) and (datetime.now().minute>=start_minute):
         logger.info(f"Function Started")
-        call_recursion()
+        call_recursion(freq)
     else:
         slp_time = ((start_hour-(datetime.now().hour))*60*60) + ((start_minute-(datetime.now().minute))*60)
         logger.info(f"Given sleep time of {slp_time} seconds.")
         time.sleep(slp_time)
-        call_recursion()
+        call_recursion(freq)
 
     
-   
