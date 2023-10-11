@@ -123,15 +123,18 @@ def run(playwright: Playwright,lst):
 
 def re_main(val):
 		while(True):
-			get_sheet_and_timings()
-			logger.info(f"Automation Started at {datetime.now()}")
-			df = pd.read_csv('ad_clicker.csv')
-			lst = [x for x in df['phrases']]
-			with sync_playwright() as playwright:
-				run(playwright,lst)
-			send_mail(log_file)
-			logger.info(f"Automation ended at {datetime.now()}")
-			time.sleep(300)
+			try:
+				get_sheet_and_timings()
+				logger.info(f"Automation Started at {datetime.now()}")
+				df = pd.read_csv('ad_clicker.csv')
+				lst = [x for x in df['phrases']]
+				with sync_playwright() as playwright:
+					run(playwright,lst)
+				send_mail(log_file)
+				logger.info(f"Automation ended at {datetime.now()}")
+				time.sleep(300)
+			except:
+				pass
 
 
 if __name__=="__main__":
