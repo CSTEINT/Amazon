@@ -7,6 +7,7 @@ from undetected_playwright import stealth_sync
 import schedule
 from pyotp import *
 import logging
+from multiprocessing import Pool
 from nanoid import generate
 from emails import get_sheet_and_timings, send_mail
 import re
@@ -63,7 +64,7 @@ def loop(data):
 
 
 
-def run(playwright: Playwright,phrase):
+def run(playwright: Playwright,lst):
 	tar_spon = []
 	tar_pro = []
 	our_pro = []
@@ -80,51 +81,59 @@ def run(playwright: Playwright,phrase):
 	except TimeoutError:
 		page.close()
 		browser.close()
-		return run(playwright,phrase)
+		return run(playwright,lst)
+	except:
+		return run(playwright,lst)
 	time.sleep(5)
 	page.goto('https://www.amazon.in')
 	if 'Enter the characters you see below' in page.content(): 
 		time.sleep(20)
 		page.close()
 		browser.close()
-		return run(playwright,phrase)
-	page.get_by_placeholder("Search Amazon.in").fill(phrase)
-	page.get_by_placeholder("Search Amazon.in").press("Enter")
-	time.sleep(10)
-	tree = html.fromstring(page.content())
-	for idx in range(5):
-		page.get_by_text("Next", exact=True).click()
-		page.wait_for_selector('.s-pagination-strip')
-		time.sleep(3)
-		data = page.content()
-		s1,p1,o1 = loop(data)
-		tar_spon += s1
-		tar_pro += p1 
-		our_pro += o1
-	for each in tar_spon:
-		page.goto(each['url'],timeout=60000)
-		logger.info(f"Clicked to Ad Sponsored by {each['owner']} at timestamp {datetime.now()}")
-	for each in our_pro:
-		page.goto(each['url'],timeout=60000)
-		logger.info(f"Clicked to our products at timestamp {datetime.now()}")
-	for each in tar_pro[:3]:
-		page.goto(each['url'],timeout=60000)
-		logger.info(f"Clicked to competetors products at timestamp {datetime.now()}")
+		return run(playwright,lst)
+	for phrase in lst:
+		page.get_by_placeholder("Search Amazon.in").fill(phrase)
+		page.get_by_placeholder("Search Amazon.in").press("Enter")
+		time.sleep(10)
+		tree = html.fromstring(page.content())
+		for idx in range(5):
+			page.get_by_text("Next", exact=True).click()
+			page.wait_for_selector('.s-pagination-strip')
+			time.sleep(3)
+			data = page.content()
+			s1,p1,o1 = loop(data)
+			tar_spon += s1
+			tar_pro += p1 
+			our_pro += o1
+		for each in tar_spon:
+			page.goto(each['url'],timeout=60000)
+			logger.info(f"Clicked to Ad Sponsored by {each['owner']} at timestamp {datetime.now()}")
+		for each in our_pro:
+			page.goto(each['url'],timeout=60000)
+			logger.info(f"Clicked to our products at timestamp {datetime.now()}")
+		for each in tar_pro[:3]:
+			page.goto(each['url'],timeout=60000)
+			logger.info(f"Clicked to competetors products at timestamp {datetime.now()}")
 	page.close()
 	browser.close()
 	return True
 
 
-if __name__=="__main__":
-	while(True):
-		get_sheet_and_timings()
-		logger.info(f"Automation Started at {datetime.now()}")
-		df = pd.read_csv('ad_clicker.csv')
-		lst = [x for x in df['phrases']]
-		for phrase in lst:
+
+
+def re_main(val):
+		while(True):
+			get_sheet_and_timings()
+			logger.info(f"Automation Started at {datetime.now()}")
+			df = pd.read_csv('ad_clicker.csv')
+			lst = [x for x in df['phrases']]
 			with sync_playwright() as playwright:
-				run(playwright,phrase)
-		send_mail(log_file)
-		logger.info(f"Automation ended at {datetime.now()}")
-		logger.info(f"Automation Will Restart after 5 minutes.")
-		time.sleep(300)
+				run(playwright,lst)
+			send_mail(log_file)
+			logger.info(f"Automation ended at {datetime.now()}")
+			time.sleep(300)
+
+
+if __name__=="__main__":
+	with Pool(2) as p:
+		p.map(re_main,range(2))
